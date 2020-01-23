@@ -68,7 +68,11 @@ public class ProductoRestController extends HttpServlet {
 		// Charset
 		response.setCharacterEncoding("utf-8");
 
+		// cuerpo respuesta
+		jsonResponseBody = null;
+
 		pathInfo = request.getPathInfo();
+
 		LOG.debug("mirar pathInfo:" + pathInfo + " para saber si es listado o detalle");
 
 		// lama al resto e metodos doGet doPost doDelete doPut
@@ -85,18 +89,13 @@ public class ProductoRestController extends HttpServlet {
 		out.flush(); // termina de escribir datos en body cierra el out
 	}
 
-	/**
-	 * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse
-	 *      response)
-	 */
 	protected void doGet(HttpServletRequest request, HttpServletResponse response)
 			throws ServletException, IOException {
 
 		LOG.trace("peticion GET");
-		jsonResponseBody = null;
 
-		if (pathInfo == null || "/".equals(pathInfo)) {
-			// listar(request, response);
+		if (pathInfo == null || "/".equals(pathInfo)) { // listar(request, response);
+
 			LOG.trace("entra en listar");
 
 			// Obtener productos de la BD
@@ -105,24 +104,19 @@ public class ProductoRestController extends HttpServlet {
 			// dejo la lista vacia si quiero que me ddevuelva 2014
 			// ArrayList<Producto> lista = new ArrayList<Producto>();
 
-			// hay que poner el status antes de escribir la response body (si no no lo pilla
-			// bien)
-			if (lista.isEmpty()) {
-				statusCode = HttpServletResponse.SC_NO_CONTENT;
-			} else {
-				statusCode = HttpServletResponse.SC_OK;
-			}
+			// hay que poner el status antes de escribir la response body
+			statusCode = (lista.isEmpty()) ? HttpServletResponse.SC_NO_CONTENT : HttpServletResponse.SC_OK;
+			;
 
 			// response
 			jsonResponseBody = new Gson().toJson(lista); // conversion de java a json
 		} else {
+
 			// detalle(request, response);
 			LOG.trace("Entra en detalle");
 
 			int id;
 			Producto producto = null;
-
-			PrintWriter out = response.getWriter(); // out se encarga de escribir datos en el body
 
 			try {
 				id = Utilidades.obtenerId(pathInfo);
@@ -147,72 +141,10 @@ public class ProductoRestController extends HttpServlet {
 
 	}
 
-	private void listar(HttpServletRequest request, HttpServletResponse response) throws IOException {
-
-		LOG.trace("entra en listar");
-		jsonResponseBody = null;
-
-		// Obtener productos de la BD
-		ArrayList<Producto> lista = (ArrayList<Producto>) productoDao.getAll();
-
-		// dejo la lista vacia si quiero que me ddevuelva 2014
-		// ArrayList<Producto> lista = new ArrayList<Producto>();
-
-		// hay que poner el status antes de escribir la response body (si no no lo pilla
-		// bien)
-		if (lista.isEmpty()) {
-			statusCode = HttpServletResponse.SC_NO_CONTENT;
-		} else {
-			statusCode = HttpServletResponse.SC_OK;
-		}
-
-		// response
-		jsonResponseBody = new Gson().toJson(lista); // conversion de java a json
-
-	}
-
-	protected void detalle(HttpServletRequest request, HttpServletResponse response) throws IOException {
-
-		LOG.trace("Entra en detalle");
-
-		int id;
-		Producto producto = null;
-		String jsonResponseBody = "";
-		PrintWriter out = response.getWriter(); // out se encarga de escribir datos en el body
-
-		try {
-			id = Utilidades.obtenerId(pathInfo);
-
-			if (id != -1) { // detalle
-				producto = productoDao.getById(id);
-			}
-
-			if (producto == null) {
-				statusCode = HttpServletResponse.SC_NOT_FOUND;
-				jsonResponseBody = new Gson().toJson(new ResponseMensaje("no se encuentra producto"));
-			} else {
-				statusCode = HttpServletResponse.SC_OK; // response.setStatus(200);//esto es lo mismo
-				jsonResponseBody = new Gson().toJson(producto); // conversion de java a json
-			}
-		} catch (Exception e) {
-			LOG.error(e);
-			statusCode = HttpServletResponse.SC_BAD_REQUEST;
-			jsonResponseBody = new Gson().toJson(new ResponseMensaje(e.getMessage()));
-		}
-//			finally { // response body
-//
-//		//	response.setStatus(statusCode);
-//			out.print(jsonResponseBody.toString());
-//			out.flush(); // termina de escribir datos en body cierra el out
-//		}
-
-	}
-
 	protected void doPost(HttpServletRequest request, HttpServletResponse response)
 			throws ServletException, IOException {
 
 		LOG.debug("POST crear recurso");
-		String jsonResponseBody = null;
 
 		// convertir json del request body a Objeto
 		BufferedReader reader = request.getReader();
@@ -228,11 +160,6 @@ public class ProductoRestController extends HttpServlet {
 			LOG.debug(e);
 			statusCode = HttpServletResponse.SC_CONFLICT;
 			jsonResponseBody = new Gson().toJson(new ResponseMensaje(e.getMessage()));
-		} finally {
-			response.setStatus(statusCode);
-			PrintWriter out = response.getWriter();
-			out.print(jsonResponseBody.toString());
-			out.flush();
 		}
 
 	}
@@ -241,7 +168,6 @@ public class ProductoRestController extends HttpServlet {
 			throws ServletException, IOException {
 
 		LOG.debug("PUT editar recurso");
-		jsonResponseBody = null;
 
 		int id = 0;
 		Producto productoOriginal = null;
@@ -276,13 +202,6 @@ public class ProductoRestController extends HttpServlet {
 			jsonResponseBody = new Gson().toJson(new ResponseMensaje(e.getMessage()));
 		}
 
-//		finally {
-//			response.setStatus(statusCode);
-//			PrintWriter out = response.getWriter();
-//			out.print(jsonResponseBody.toString());
-//			out.flush();
-//		}
-
 	}
 
 	protected void doDelete(HttpServletRequest request, HttpServletResponse response)
@@ -290,14 +209,8 @@ public class ProductoRestController extends HttpServlet {
 
 		LOG.debug("DELETE recurso por id");
 
-		jsonResponseBody = null;
-
 		Producto producto = null;
 		int id = 0;
-//
-//		Usuario usuario = new Usuario();
-//		HttpSession session = request.getSession();
-//		usuario = (Usuario) session.getAttribute("usuarioLogeado");
 
 		try {
 			id = Utilidades.obtenerId(pathInfo);
@@ -319,12 +232,6 @@ public class ProductoRestController extends HttpServlet {
 			statusCode = HttpServletResponse.SC_BAD_REQUEST;
 			jsonResponseBody = new Gson().toJson(new ResponseMensaje(e.getMessage()));
 		}
-//		finally {
-//			response.setStatus(statusCode);
-//			PrintWriter out = response.getWriter();
-//			out.print(jsonResponseBody.toString());
-//			out.flush();
-//		}
 
 	}
 

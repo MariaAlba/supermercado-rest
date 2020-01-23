@@ -61,7 +61,7 @@ public class Utilidades {
 			} else {
 				frase = frase.replaceAll("\\W+", " ");
 				String[] partes = frase.split("\\s+");
-				result = frase.split("\\s+").length;
+				result = partes.length;
 			}
 
 		}
