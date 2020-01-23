@@ -224,6 +224,7 @@ public class ProductoRestController extends HttpServlet {
 
 				productoDao.update(id, productoModificado);
 				statusCode = HttpServletResponse.SC_OK;
+				jsonResponseBody = new Gson().toJson(productoModificado);
 
 			}
 
