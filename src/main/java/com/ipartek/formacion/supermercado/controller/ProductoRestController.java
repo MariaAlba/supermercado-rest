@@ -78,7 +78,9 @@ public class ProductoRestController extends HttpServlet {
 		// lama al resto e metodos doGet doPost doDelete doPut
 		super.service(request, response);
 
+		// TODO mostar parametros de url
 		LOG.debug("ahora entra en service despues de metodo que toke");
+		LOG.debug(request.getMethod() + " " + request.getRequestURL());
 
 		response.setStatus(statusCode); // response status
 
@@ -144,13 +146,14 @@ public class ProductoRestController extends HttpServlet {
 	protected void doPost(HttpServletRequest request, HttpServletResponse response)
 			throws ServletException, IOException {
 
-		LOG.debug("POST crear recurso");
-
 		// convertir json del request body a Objeto
 		BufferedReader reader = request.getReader();
 		Gson gson = new Gson();
 		Producto producto = gson.fromJson(reader, Producto.class);
+
 		LOG.debug(" Json convertido a Objeto: " + producto);
+
+		// TODO validar Objeto
 
 		try {
 			productoDao.create(producto);
