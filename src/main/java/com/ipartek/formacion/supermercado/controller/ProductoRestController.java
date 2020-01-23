@@ -1,5 +1,6 @@
 package com.ipartek.formacion.supermercado.controller;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -17,6 +18,8 @@ import org.apache.log4j.Logger;
 import com.google.gson.Gson;
 import com.ipartek.formacion.supermercado.modelo.dao.ProductoDAO;
 import com.ipartek.formacion.supermercado.modelo.pojo.Producto;
+import com.ipartek.formacion.supermercado.pojo.ResponseMensaje;
+import com.ipartek.formacion.supermercado.utils.Utilidades;
 
 /**
  * Servlet implementation class ProductoRestController
@@ -29,6 +32,8 @@ public class ProductoRestController extends HttpServlet {
 	private final static Logger LOG = Logger.getLogger(ProductoRestController.class);
 
 	private ProductoDAO productoDao;
+
+	// TODO respuesta de error cuando ocurre error
 
 	/**
 	 * @see Servlet#init(ServletConfig)
@@ -52,16 +57,17 @@ public class ProductoRestController extends HttpServlet {
 	protected void service(HttpServletRequest request, HttpServletResponse response)
 			throws ServletException, IOException {
 
-		// lama al resto e metodos doGet doPost doDelete doPut
-		super.service(request, response);
-
-		// Preparar la response: la cabecera
+		// RESPONSE: cabecera (la ponemos aquí porque se va a repetir en todos los
+		// métodos)
 
 		// Content type
 		response.setContentType("application/json");
 
 		// Charset
 		response.setCharacterEncoding("utf-8");
+
+		// lama al resto e metodos doGet doPost doDelete doPut
+		super.service(request, response);
 	}
 
 	/**
@@ -75,12 +81,12 @@ public class ProductoRestController extends HttpServlet {
 
 		String pathInfo = request.getPathInfo();
 
-		LOG.debug("mirar pathInfo:" + pathInfo + " para saber si es listado o detalle");
+		LOG.debug("pathInfo:" + pathInfo + " para saber si es listado o detalle");
 
 		if (pathInfo == null || "/".equals(pathInfo)) {
 			listar(request, response);
 		} else {
-			detalle(request, response);
+			detalle(request, response, pathInfo);
 		}
 
 	}
@@ -95,19 +101,12 @@ public class ProductoRestController extends HttpServlet {
 		// dejo la lista vacia si quiero que me ddevuelva 2014
 		// ArrayList<Producto> lista = new ArrayList<Producto>();
 
-		// Preparar la response: Content type y charset y responsebody
-
-		// Content type
-		response.setContentType("application/json");
-
-		// Charset
-		response.setCharacterEncoding("utf-8");
-
+		// hay que poner el status antes de escribir la response body (si no no lo pilla
+		// bien)
 		if (lista.isEmpty()) {
 			response.setStatus(204);
 		} else {
 			response.setStatus(HttpServletResponse.SC_OK);
-			// response.setStatus(200);//esto es lo mismo que lo de abajo
 		}
 
 		// response body
@@ -122,42 +121,38 @@ public class ProductoRestController extends HttpServlet {
 
 	}
 
-	private void detalle(HttpServletRequest request, HttpServletResponse response) throws IOException {
+	private void detalle(HttpServletRequest request, HttpServletResponse response, String pathInfo) throws IOException {
 
 		LOG.trace("Entra en detalle");
 
-		// Obtener producto de la BD por id
-		ArrayList<Producto> lista = (ArrayList<Producto>) productoDao.getAll();
-
-		// dejo la lista vacia si quiero que me ddevuelva 2014
-		// ArrayList<Producto> lista = new ArrayList<Producto>();
-
-		// Preparar la response: Content type y charset y responsebody
-
-		// Content type
-		response.setContentType("application/json");
-
-		// Charset
-		response.setCharacterEncoding("utf-8");
-
-		if (lista.isEmpty()) {
-			response.setStatus(204);
-		} else {
-			response.setStatus(HttpServletResponse.SC_OK);
-			// response.setStatus(200);//esto es lo mismo que lo de abajo
-		}
-
-		// se pone primero el status y luego se pinta la respuesta (si se pinta por
-		// defecto devuelve 200)
-		// response body
-
+		int id;
+		Producto producto = null;
+		String jsonResponseBody = "";
 		PrintWriter out = response.getWriter(); // out se encarga de escribir datos en el body
 
-		String jsonResponseBody = new Gson().toJson(lista); // conversion de java a json
+		try {
+			id = Utilidades.obtenerId(pathInfo);
 
-		out.print(jsonResponseBody.toString());
+			if (id != -1) { // detalle
+				producto = productoDao.getById(id);
+			}
 
-		out.flush(); // termina de escribir datos en body cierra el out
+			if (producto == null) {
+				response.setStatus(HttpServletResponse.SC_NO_CONTENT);
+				jsonResponseBody = new Gson().toJson(new ResponseMensaje("no se encuentra producto"));
+			} else {
+				response.setStatus(HttpServletResponse.SC_OK);// response.setStatus(200);//esto es lo mismo
+				jsonResponseBody = new Gson().toJson(producto); // conversion de java a json
+			}
+		} catch (Exception e) {
+			LOG.error(e);
+			response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+			jsonResponseBody = new Gson().toJson(new ResponseMensaje("Peticion incorrecta"));
+		} finally { // response body
+
+			out.print(jsonResponseBody.toString());
+			out.flush(); // termina de escribir datos en body cierra el out
+		}
 
 	}
 
@@ -167,8 +162,30 @@ public class ProductoRestController extends HttpServlet {
 	 */
 	protected void doPost(HttpServletRequest request, HttpServletResponse response)
 			throws ServletException, IOException {
-		// TODO Auto-generated method stub
-		doGet(request, response);
+
+		LOG.debug("POST crear recurso");
+		String jsonResponseBody = null;
+
+		// convertir json del request body a Objeto
+		BufferedReader reader = request.getReader();
+		Gson gson = new Gson();
+		Producto producto = gson.fromJson(reader, Producto.class);
+		LOG.debug(" Json convertido a Objeto: " + producto);
+
+		try {
+			productoDao.create(producto);
+		} catch (Exception e) {
+			LOG.debug(e);
+			jsonResponseBody = new Gson().toJson(new ResponseMensaje("A pikar kodigo"));
+		} finally {
+
+			PrintWriter out = response.getWriter();
+			out.print(jsonResponseBody.toString());
+			out.flush();
+		}
+
+		response.setStatus(HttpServletResponse.SC_NOT_IMPLEMENTED);
+
 	}
 
 	/**
