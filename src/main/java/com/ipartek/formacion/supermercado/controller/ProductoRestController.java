@@ -198,6 +198,48 @@ public class ProductoRestController extends HttpServlet {
 	protected void doPut(HttpServletRequest request, HttpServletResponse response)
 			throws ServletException, IOException {
 
+		LOG.debug("PUT editar recurso");
+		String jsonResponseBody = null;
+
+		int id = 0;
+		Producto productoOriginal = null;
+
+		try {
+			id = Utilidades.obtenerId(pathInfo);
+			if (id != -1) {
+				productoOriginal = productoDao.getById(id);
+			}
+
+			if (productoOriginal == null) {
+				statusCode = HttpServletResponse.SC_NOT_FOUND;
+				jsonResponseBody = new Gson().toJson(new ResponseMensaje("Recurso no encontrado"));
+			} else {
+
+				// convertir json del request body a Objeto
+				BufferedReader reader = request.getReader();
+				Gson gson = new Gson();
+				Producto productoModificado = gson.fromJson(reader, Producto.class);
+
+				LOG.debug(" Json convertido a Objeto: " + productoModificado);
+
+				productoDao.update(id, productoModificado);
+				statusCode = HttpServletResponse.SC_OK;
+
+			}
+
+		} catch (Exception e) {
+			LOG.debug(e);
+			statusCode = HttpServletResponse.SC_CONFLICT;
+			jsonResponseBody = new Gson().toJson(new ResponseMensaje(e.getMessage()));
+		}
+
+		finally {
+			response.setStatus(statusCode);
+			PrintWriter out = response.getWriter();
+			out.print(jsonResponseBody.toString());
+			out.flush();
+		}
+
 	}
 
 	/**

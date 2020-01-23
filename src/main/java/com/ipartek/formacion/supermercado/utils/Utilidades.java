@@ -43,4 +43,30 @@ public class Utilidades {
 		return id;
 	}
 
+	/**
+	 * Obtenemos el numero de palabras que tiene la frase
+	 * 
+	 * @param frase de la que hay que contar las palabras
+	 * @return numero de palabras ó 0 si es null o cadena vacia o cadena con spacios
+	 *         en blanco
+	 */
+	public static int contarPalabras(String frase) {
+
+		int result = 0;
+
+		if (frase != null) {
+
+			if (frase.matches("\\s+") || frase.matches("")) {
+				result = 0;
+			} else {
+				frase = frase.replaceAll("\\W+", " ");
+				String[] partes = frase.split("\\s+");
+				result = frase.split("\\s+").length;
+			}
+
+		}
+
+		return result;
+
+	}
 }
