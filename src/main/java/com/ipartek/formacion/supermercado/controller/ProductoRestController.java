@@ -33,7 +33,8 @@ public class ProductoRestController extends HttpServlet {
 
 	private ProductoDAO productoDao;
 
-	// TODO respuesta de error cuando ocurre error
+	private String pathInfo;
+	private int statusCode;
 
 	/**
 	 * @see Servlet#init(ServletConfig)
@@ -66,6 +67,9 @@ public class ProductoRestController extends HttpServlet {
 		// Charset
 		response.setCharacterEncoding("utf-8");
 
+		pathInfo = request.getPathInfo();
+		LOG.debug("mirar pathInfo:" + pathInfo + " para saber si es listado o detalle");
+
 		// lama al resto e metodos doGet doPost doDelete doPut
 		super.service(request, response);
 	}
@@ -79,14 +83,10 @@ public class ProductoRestController extends HttpServlet {
 
 		LOG.trace("peticion GET");
 
-		String pathInfo = request.getPathInfo();
-
-		LOG.debug("pathInfo:" + pathInfo + " para saber si es listado o detalle");
-
 		if (pathInfo == null || "/".equals(pathInfo)) {
 			listar(request, response);
 		} else {
-			detalle(request, response, pathInfo);
+			detalle(request, response);
 		}
 
 	}
@@ -104,12 +104,14 @@ public class ProductoRestController extends HttpServlet {
 		// hay que poner el status antes de escribir la response body (si no no lo pilla
 		// bien)
 		if (lista.isEmpty()) {
-			response.setStatus(204);
+			statusCode = HttpServletResponse.SC_NO_CONTENT;
 		} else {
-			response.setStatus(HttpServletResponse.SC_OK);
+			statusCode = HttpServletResponse.SC_OK;
 		}
 
 		// response body
+
+		response.setStatus(statusCode);
 
 		PrintWriter out = response.getWriter(); // out se encarga de escribir datos en el body
 
@@ -121,7 +123,7 @@ public class ProductoRestController extends HttpServlet {
 
 	}
 
-	private void detalle(HttpServletRequest request, HttpServletResponse response, String pathInfo) throws IOException {
+	private void detalle(HttpServletRequest request, HttpServletResponse response) throws IOException {
 
 		LOG.trace("Entra en detalle");
 
@@ -138,18 +140,19 @@ public class ProductoRestController extends HttpServlet {
 			}
 
 			if (producto == null) {
-				response.setStatus(HttpServletResponse.SC_NO_CONTENT);
+				statusCode = HttpServletResponse.SC_NOT_FOUND;
 				jsonResponseBody = new Gson().toJson(new ResponseMensaje("no se encuentra producto"));
 			} else {
-				response.setStatus(HttpServletResponse.SC_OK);// response.setStatus(200);//esto es lo mismo
+				statusCode = HttpServletResponse.SC_OK; // response.setStatus(200);//esto es lo mismo
 				jsonResponseBody = new Gson().toJson(producto); // conversion de java a json
 			}
 		} catch (Exception e) {
 			LOG.error(e);
-			response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-			jsonResponseBody = new Gson().toJson(new ResponseMensaje("Peticion incorrecta"));
+			statusCode = HttpServletResponse.SC_BAD_REQUEST;
+			jsonResponseBody = new Gson().toJson(new ResponseMensaje(e.getMessage()));
 		} finally { // response body
 
+			response.setStatus(statusCode);
 			out.print(jsonResponseBody.toString());
 			out.flush(); // termina de escribir datos en body cierra el out
 		}
@@ -174,17 +177,18 @@ public class ProductoRestController extends HttpServlet {
 
 		try {
 			productoDao.create(producto);
+			statusCode = HttpServletResponse.SC_CREATED;
+			jsonResponseBody = new Gson().toJson(producto);
 		} catch (Exception e) {
 			LOG.debug(e);
-			jsonResponseBody = new Gson().toJson(new ResponseMensaje("A pikar kodigo"));
+			statusCode = HttpServletResponse.SC_CONFLICT;
+			jsonResponseBody = new Gson().toJson(new ResponseMensaje(e.getMessage()));
 		} finally {
-
+			response.setStatus(statusCode);
 			PrintWriter out = response.getWriter();
 			out.print(jsonResponseBody.toString());
 			out.flush();
 		}
-
-		response.setStatus(HttpServletResponse.SC_NOT_IMPLEMENTED);
 
 	}
 
@@ -193,7 +197,7 @@ public class ProductoRestController extends HttpServlet {
 	 */
 	protected void doPut(HttpServletRequest request, HttpServletResponse response)
 			throws ServletException, IOException {
-		// TODO Auto-generated method stub
+
 	}
 
 	/**
@@ -201,7 +205,44 @@ public class ProductoRestController extends HttpServlet {
 	 */
 	protected void doDelete(HttpServletRequest request, HttpServletResponse response)
 			throws ServletException, IOException {
-		// TODO Auto-generated method stub
+
+		LOG.debug("DELETE recurso por id");
+
+		String jsonResponseBody = null;
+
+		Producto producto = null;
+		int id = 0;
+//
+//		Usuario usuario = new Usuario();
+//		HttpSession session = request.getSession();
+//		usuario = (Usuario) session.getAttribute("usuarioLogeado");
+
+		try {
+			id = Utilidades.obtenerId(pathInfo);
+
+			if (id != -1) { // detalle
+				producto = productoDao.getById(id);
+			}
+
+			if (producto == null) {
+				statusCode = HttpServletResponse.SC_NOT_FOUND;
+				jsonResponseBody = new Gson().toJson(new ResponseMensaje("No se encuentra el recurso"));
+			} else {
+				productoDao.delete(id);
+				statusCode = HttpServletResponse.SC_OK;
+				jsonResponseBody = new Gson().toJson(new ResponseMensaje(producto + " eliminado"));
+			}
+		} catch (Exception e) {
+			LOG.error(e);
+			statusCode = HttpServletResponse.SC_BAD_REQUEST;
+			jsonResponseBody = new Gson().toJson(new ResponseMensaje(e.getMessage()));
+		} finally {
+			response.setStatus(statusCode);
+			PrintWriter out = response.getWriter();
+			out.print(jsonResponseBody.toString());
+			out.flush();
+		}
+
 	}
 
 }
