@@ -97,6 +97,9 @@ public class ProductoRestController extends HttpServlet {
 		// prepara la response
 		response.setContentType("application/json");
 		response.setCharacterEncoding("utf-8");
+//		response.addHeader("Access-Control-Allow-Origin", "*");
+//		response.addHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, PUT");
+//		response.addHeader("Access-Control-Allow-Headers", "Content-Type");
 
 		reponseBody = null;
 		pathInfo = request.getPathInfo();
